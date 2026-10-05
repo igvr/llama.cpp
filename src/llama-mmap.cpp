@@ -553,10 +553,14 @@ struct llama_mmap::impl {
         GGML_ASSERT(last % page_size == 0);
         GGML_ASSERT(last > first);
 
-        void * next_page_start = (uint8_t *) addr + first;
-
-        if (munmap(next_page_start, len)) {
-            LLAMA_LOG_WARN("warning: munmap failed: %s\n", strerror(errno));
+        // Earlier releases may have left holes which unrelated allocations can
+        // reuse. Only unmap intervals still owned by this mapping.
+        for (const auto & frag : mapped_fragments) {
+            const size_t lo = std::max(first, frag.first);
+            const size_t hi = std::min(last, frag.second);
+            if (lo < hi && munmap((uint8_t *) addr + lo, hi - lo)) {
+                LLAMA_LOG_WARN("warning: munmap failed: %s\n", strerror(errno));
+            }
         }
 
         std::vector<std::pair<size_t, size_t>> new_mapped_fragments;

@@ -1121,7 +1121,10 @@ static buft_list_t make_cpu_buft_list(const std::vector<llama_device> & devices,
         if (ggml_backend_dev_get_extra_bufts_fn) {
             ggml_backend_buffer_type_t * extra_bufts = ggml_backend_dev_get_extra_bufts_fn(cpu_dev);
             while (extra_bufts && *extra_bufts) {
-                buft_list.emplace_back(cpu_dev, *extra_bufts);
+                if (std::string(ggml_backend_buft_name(*extra_bufts)) == "CPU_Q8_ARENA")
+                    buft_list.insert(buft_list.begin(), {cpu_dev, *extra_bufts});
+                else
+                    buft_list.emplace_back(cpu_dev, *extra_bufts);
                 ++extra_bufts;
             }
         }

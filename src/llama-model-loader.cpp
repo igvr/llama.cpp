@@ -1,3 +1,4 @@
+#include "../ggml/src/ggml-q8arena.h"
 #include "llama-model-loader.h"
 
 #include "ggml-alloc.h"
@@ -1426,7 +1427,7 @@ void llama_model_loader::init_mappings(bool prefetch, llama_mlocks * mlock_mmaps
                 }
             }
 
-            const size_t prefetch_size = prefetch && use_mmap ? -1 : 0;
+            const size_t prefetch_size = prefetch && use_mmap && !ggml_q8arena_enabled() ? -1 : 0;
 
             std::unique_ptr<llama_mmap> mapping = std::make_unique<llama_mmap>(file.get(), prefetch_size, is_numa,
                     lazy.for_file(idx));
@@ -1667,6 +1668,14 @@ bool llama_model_loader::load_all_data(
                 mmap_used.second = std::max(mmap_used.second, weight->offs + n_size);
             } else {
                 ggml_backend_tensor_set(cur, data, 0, n_size);
+                // A compact backend has consumed the original immutable bytes.
+                // Release each converted source range immediately; retaining it
+                // until the end of loading would temporarily duplicate CPU weights.
+                if (!check_tensors && !lazy.has(cur) &&
+                    ggml_backend_buffer_get_alloc_size(cur->buffer, cur) < n_size) {
+                    mapping->unmap_fragment(weight->offs, weight->offs + n_size);
+                }
+
             }
         } else {
             const auto & file = files.at(weight->idx);

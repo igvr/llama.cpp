@@ -1,3 +1,4 @@
+#include "ggml-q8arena.h"
 // Note: porting this file to C++ is a work in progress
 
 #ifdef _WIN32
@@ -196,7 +197,7 @@ size_t ggml_backend_buft_get_alloc_size(ggml_backend_buffer_type_t buft, const s
     // get_alloc_size is optional, defaults to ggml_nbytes
     if (buft->iface.get_alloc_size) {
         size_t size = buft->iface.get_alloc_size(buft, tensor);
-        assert(size >= ggml_nbytes(tensor));
+        GGML_ASSERT(size >= ggml_nbytes(tensor) || (ggml_q8arena_find(tensor) && size == ggml_q8arena_size(tensor)));
 
         // [TAG_ALLOC_SIZE_EXPAND]
         // if you hit this assert, update ggml_backend_op_alloc_size_may_expand() accordingly
@@ -1107,7 +1108,9 @@ static int ggml_backend_sched_backend_id_from_cur(ggml_backend_sched_t sched, st
             if (src->buffer != NULL && src->buffer->usage == GGML_BACKEND_BUFFER_USAGE_WEIGHTS) {
                 int src_backend_id = ggml_backend_sched_backend_from_buffer(sched, src, tensor);
                 // check if a backend with higher prio wants to offload the op
-                if (sched->op_offload && src_backend_id == sched->n_backends - 1 && ggml_backend_buffer_is_host(src->buffer)) {
+                if (sched->op_offload && src_backend_id == sched->n_backends - 1 &&
+                    (ggml_backend_buffer_is_host(src->buffer) ||
+                     (ggml_q8arena_find(src) && strcmp(ggml_backend_buft_name(src->buffer->buft), "CPU_Q8_ARENA") == 0))) {
                     for (int b = 0; b < src_backend_id; b++) {
                         if (ggml_backend_supports_op(sched->backends[b], tensor) && ggml_backend_offload_op(sched->backends[b], tensor)) {
                             SET_CAUSE(tensor, "1.off");

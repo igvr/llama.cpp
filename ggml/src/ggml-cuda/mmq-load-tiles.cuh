@@ -468,6 +468,8 @@ template <ggml_type type, int J, bool fallback> static __device__ __forceinline_
     }
 }
 
+#include "q8arena-load.cuh"
+
 template <ggml_type type, int J, bool fallback> static __device__ __forceinline__ void ggml_cuda_mmq_load_tiles_q8_0(
         const char * __restrict__ x, int * __restrict__ x_tile, const int kbx0, const int i_max, const int stride) {
     constexpr int warp_size   = ggml_cuda_get_physical_warp_size();
@@ -502,11 +504,11 @@ template <ggml_type type, int J, bool fallback> static __device__ __forceinline_
         const block_q8_0 * bxi = (const block_q8_0 *) x + kbx0 + i*stride + kbx;
 
 #if defined(AMD_MFMA_AVAILABLE) || defined(TURING_MMA_AVAILABLE) || defined(AMD_WMMA_AVAILABLE)
-        x_qs[i*sram_stride + 0             + txi] = get_int_b2(bxi[0].qs,                   kqsx);
-        x_qs[i*sram_stride + MMQ_TILE_NE_K + txi] = get_int_b2(bxi[MMQ_TILE_NE_K/QI8_0].qs, kqsx);
+        x_qs[i*sram_stride + 0             + txi] = (q8_arena_tagged(x) ? q8_arena_word(x,kbx0+i*stride+kbx,kqsx) : get_int_b2(bxi[0].qs,kqsx));
+        x_qs[i*sram_stride + MMQ_TILE_NE_K + txi] = (q8_arena_tagged(x) ? q8_arena_word(x,kbx0+i*stride+kbx+MMQ_TILE_NE_K/QI8_0,kqsx) : get_int_b2(bxi[MMQ_TILE_NE_K/QI8_0].qs,kqsx));
 #else
-        x_qs[i*(2*MMQ_TILE_NE_K + 1) + 0             + txi] = get_int_b2(bxi[0].qs,                   kqsx);
-        x_qs[i*(2*MMQ_TILE_NE_K + 1) + MMQ_TILE_NE_K + txi] = get_int_b2(bxi[MMQ_TILE_NE_K/QI8_0].qs, kqsx);
+        x_qs[i*(2*MMQ_TILE_NE_K + 1) + 0             + txi] = (q8_arena_tagged(x) ? q8_arena_word(x,kbx0+i*stride+kbx,kqsx) : get_int_b2(bxi[0].qs,kqsx));
+        x_qs[i*(2*MMQ_TILE_NE_K + 1) + MMQ_TILE_NE_K + txi] = (q8_arena_tagged(x) ? q8_arena_word(x,kbx0+i*stride+kbx+MMQ_TILE_NE_K/QI8_0,kqsx) : get_int_b2(bxi[MMQ_TILE_NE_K/QI8_0].qs,kqsx));
 #endif // defined(AMD_MFMA_AVAILABLE) || defined(TURING_MMA_AVAILABLE) || defined(AMD_WMMA_AVAILABLE)
     }
 
@@ -525,9 +527,9 @@ template <ggml_type type, int J, bool fallback> static __device__ __forceinline_
         const block_q8_0 * bxi = (const block_q8_0 *) x + kbx0 + i*stride + kbxd;
 
 #if defined(AMD_MFMA_AVAILABLE) || defined(TURING_MMA_AVAILABLE) || defined(AMD_WMMA_AVAILABLE)
-        x_df[i*sram_stride                           + kbxd] = bxi->d;
+        x_df[i*sram_stride                           + kbxd] = q8_arena_tagged(x) ? q8_arena_half(x,kbx0+i*stride+kbxd) : bxi->d;
 #else
-        x_df[i*(2*MMQ_TILE_NE_K/QI8_0) + i/(QI8_0/2) + kbxd] = bxi->d;
+        x_df[i*(2*MMQ_TILE_NE_K/QI8_0) + i/(QI8_0/2) + kbxd] = q8_arena_tagged(x) ? q8_arena_half(x,kbx0+i*stride+kbxd) : bxi->d;
 #endif // defined(AMD_MFMA_AVAILABLE) || defined(TURING_MMA_AVAILABLE) || defined(AMD_WMMA_AVAILABLE)
     }
 }

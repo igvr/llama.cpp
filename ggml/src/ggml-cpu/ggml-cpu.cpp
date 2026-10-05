@@ -37,11 +37,14 @@
 #    include <sys/types.h>
 #endif
 
+ggml_backend_buffer_type_t ggml_backend_cpu_q8arena_buffer_type();
+
 // ggml-backend interface
 
 std::vector<ggml_backend_buffer_type_t> & ggml_backend_cpu_get_extra_buffer_types() {
     static std::vector<ggml_backend_buffer_type_t> bufts = []() {
         std::vector<ggml_backend_buffer_type_t> bufts;
+        if (auto arena = ggml_backend_cpu_q8arena_buffer_type()) bufts.push_back(arena);
 
 #if defined(__AMX_INT8__) && defined(__AVX512VNNI__)
         if (ggml_backend_amx_buffer_type()) {

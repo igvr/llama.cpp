@@ -1,3 +1,4 @@
+#include "q8arena.cuh"
 #include "common.cuh"
 #include "mmq.cuh"
 #include "quantize.cuh"
@@ -152,7 +153,7 @@ void ggml_cuda_mul_mat_q(
     GGML_ASSERT(        nb0        == ts_dst);
     GGML_ASSERT(!ids || ids->nb[0] == ggml_type_size(ids->type));
 
-    const char  * src0_d = (const char  *) src0->data;
+    const char  * src0_d = (const char  *) ggml_cuda_q8arena_tag(src0);
     const float * src1_d = (const float *) src1->data;
     float       *  dst_d = (float       *)  dst->data;
 

@@ -1440,7 +1440,7 @@ class tinyBLAS_Q0_ARM {
 #endif // __ARM_FEATURE_DOTPROD
 
 #if defined(__AVX2__) || defined(__AVX512F__) || defined(__AVX__)
-template <typename TA, typename TB, typename TC>
+template <typename TA, typename TB, typename TC, bool ARENA = false>
 class tinyBLAS_Q0_AVX {
   public:
     tinyBLAS_Q0_AVX(int64_t k,
@@ -1626,13 +1626,13 @@ class tinyBLAS_Q0_AVX {
             int64_t jj = n0 + job % xtiles * RN;
             __m256 Cv[RN][4] = {};
             for (int64_t l = 0; l < k; ++l) {
-                uint64_t a_delta = ((uint64_t)A[lda * (ii + 3) + l].d << 48) | ((uint64_t)A[lda * (ii + 2) + l].d << 32) | ((uint64_t)A[lda * (ii + 1) + l].d << 16) | (A[lda * (ii + 0) + l].d);
+                uint64_t a_delta = ((uint64_t)scaleA(lda * (ii + 3) + l) << 48) | ((uint64_t)scaleA(lda * (ii + 2) + l) << 32) | ((uint64_t)scaleA(lda * (ii + 1) + l) << 16) | (scaleA(lda * (ii + 0) + l));
                 // Convert delta values for four blocks to float values
                 __m128 da = _mm_cvtph_ps(_mm_set_epi64x(0, a_delta));
-                __m256i avec0 = load(A + lda * (ii + 0) + l);
-                __m256i avec1 = load(A + lda * (ii + 1) + l);
-                __m256i avec2 = load(A + lda * (ii + 2) + l);
-                __m256i avec3 = load(A + lda * (ii + 3) + l);
+                __m256i avec0 = loadA(lda * (ii + 0) + l);
+                __m256i avec1 = loadA(lda * (ii + 1) + l);
+                __m256i avec2 = loadA(lda * (ii + 2) + l);
+                __m256i avec3 = loadA(lda * (ii + 3) + l);
                 for (int64_t j = 0; j < RN; ++j) {
                         __m128 db = _mm_set1_ps(unhalf(B[ldb * (jj + j) + l].d));
                         // Computation of product of delta values for four blocks and replicate it across 256 bit lane
@@ -1688,30 +1688,30 @@ class tinyBLAS_Q0_AVX {
                 __m256i bvec2 = load(B + ldb * (jj + 2) + l);
                 __m256i bvec3 = load(B + ldb * (jj + 3) + l);
                 for (int64_t i = 0; i < RM; ++i) {
-                    __m128 da = _mm_set1_ps(unhalf((A[lda * (ii + i) + l].d)));
+                    __m128 da = _mm_set1_ps(unhalf((scaleA(lda * (ii + i) + l))));
                     // Computation of product of delta values for four blocks and replicate it across 256 bit lane
                     __m256 dvec =  _mm256_castps128_ps256(_mm_mul_ps(da, db));
                     dvec = _mm256_permute2f128_ps(dvec ,dvec, 0);
                     // Computation of dot product and multiplication with appropriate delta value products
                     Cv[0][i] = madd(_mm256_shuffle_ps(dvec, dvec, 0),
-                                    updot(_mm256_sign_epi8(load(A + lda * (ii + i) + l),
-                                                            load(A + lda * (ii + i) + l)),
-                                            _mm256_sign_epi8(bvec0, load(A + lda * (ii + i) + l))),
+                                    updot(_mm256_sign_epi8(loadA(lda * (ii + i) + l),
+                                                            loadA(lda * (ii + i) + l)),
+                                            _mm256_sign_epi8(bvec0, loadA(lda * (ii + i) + l))),
                                     Cv[0][i]);
                     Cv[1][i] = madd(_mm256_shuffle_ps(dvec, dvec, 85),
-                                    updot(_mm256_sign_epi8(load(A + lda * (ii + i) + l),
-                                                            load(A + lda * (ii + i) + l)),
-                                            _mm256_sign_epi8(bvec1, load(A + lda * (ii + i) + l))),
+                                    updot(_mm256_sign_epi8(loadA(lda * (ii + i) + l),
+                                                            loadA(lda * (ii + i) + l)),
+                                            _mm256_sign_epi8(bvec1, loadA(lda * (ii + i) + l))),
                                     Cv[1][i]);
                     Cv[2][i] = madd(_mm256_shuffle_ps(dvec, dvec, 170),
-                                    updot(_mm256_sign_epi8(load(A + lda * (ii + i) + l),
-                                                            load(A + lda * (ii + i) + l)),
-                                            _mm256_sign_epi8(bvec2, load(A + lda * (ii + i) + l))),
+                                    updot(_mm256_sign_epi8(loadA(lda * (ii + i) + l),
+                                                            loadA(lda * (ii + i) + l)),
+                                            _mm256_sign_epi8(bvec2, loadA(lda * (ii + i) + l))),
                                     Cv[2][i]);
                     Cv[3][i] = madd(_mm256_shuffle_ps(dvec, dvec, 255),
-                                    updot(_mm256_sign_epi8(load(A + lda * (ii + i) + l),
-                                                            load(A + lda * (ii + i) + l)),
-                                            _mm256_sign_epi8(bvec3, load(A + lda * (ii + i) + l))),
+                                    updot(_mm256_sign_epi8(loadA(lda * (ii + i) + l),
+                                                            loadA(lda * (ii + i) + l)),
+                                            _mm256_sign_epi8(bvec3, loadA(lda * (ii + i) + l))),
                                     Cv[3][i]);
                 }
             }
@@ -1740,13 +1740,13 @@ class tinyBLAS_Q0_AVX {
                 for (int64_t j = 0; j < RN; ++j)
                     for (int64_t i = 0; i < RM; ++i) {
 #if defined(__AVX2__)
-                        __m256 udTmp = updot(_mm256_sign_epi8(load(A + lda * (ii + i) + l),
-                                                              load(A + lda * (ii + i) + l)),
+                        __m256 udTmp = updot(_mm256_sign_epi8(loadA(lda * (ii + i) + l),
+                                                              loadA(lda * (ii + i) + l)),
                                              _mm256_sign_epi8(load(B + ldb * (jj + j) + l),
-                                                              load(A + lda * (ii + i) + l)));
+                                                              loadA(lda * (ii + i) + l)));
 #else
-                        __m128i ali0 = load0(A + lda * (ii + i) + l);
-                        __m128i ali1 = load1(A + lda * (ii + i) + l);
+                        __m128i ali0 = load0A(lda * (ii + i) + l);
+                        __m128i ali1 = load1A(lda * (ii + i) + l);
                         __m128i blj0 = load0(B + ldb * (jj + j) + l);
                         __m128i blj1 = load1(B + ldb * (jj + j) + l);
 
@@ -1761,7 +1761,7 @@ class tinyBLAS_Q0_AVX {
                         __m128i mad1 = _mm_maddubs_epi16(sepAA1, sepBA1);
                         __m256 udTmp = _mm256_cvtepi32_ps(MM256_SET_M128I(_mm_madd_epi16(oneFill, mad1), _mm_madd_epi16(oneFill, mad0)));
 #endif
-                        Cv[j][i] = madd(_mm256_set1_ps(unhalf(A[lda * (ii + i) + l].d) *
+                        Cv[j][i] = madd(_mm256_set1_ps(unhalf(scaleA(lda * (ii + i) + l)) *
                                                        unhalf(B[ldb * (jj + j) + l].d)),
                                                        udTmp,
                                                        Cv[j][i]);
@@ -1770,6 +1770,31 @@ class tinyBLAS_Q0_AVX {
                 for (int64_t i = 0; i < RM; ++i)
                     C[ldc * (jj + j) + (ii + i)] = hsum(Cv[j][i]);
         }
+    }
+
+    inline ggml_half scaleA(int64_t block) {
+        if constexpr (ARENA) {
+            const auto base=(const uint8_t*)A;
+            uint64_t offset;memcpy(&offset,base,8);uint32_t bits;memcpy(&bits,base+16,4);
+            uint64_t bit=uint64_t(block)*bits,word;memcpy(&word,base+offset+(bit>>5)*4,8);
+            return ((const ggml_half*)(base+64))[(word>>(bit&31))&((1u<<bits)-1)];
+        } else return A[block].d;
+    }
+    inline const int8_t *codesA(int64_t block) {
+        const auto base=(const uint8_t*)A;
+        return (const int8_t*)base+4352+block*32;
+    }
+    inline __m256i loadA(int64_t block) {
+        if constexpr (ARENA) return _mm256_loadu_si256((const __m256i*)codesA(block));
+        else return load(A+block);
+    }
+    inline __m128i load0A(int64_t block) {
+        if constexpr (ARENA) return _mm_loadu_si128((const __m128i*)codesA(block));
+        else return load0(A+block);
+    }
+    inline __m128i load1A(int64_t block) {
+        if constexpr (ARENA) return _mm_loadu_si128((const __m128i*)(codesA(block)+16));
+        else return load1(A+block);
     }
 
     inline __m256i load(const block_q8_0 *b) {
@@ -4252,4 +4277,18 @@ bool llamafile_sgemm(const struct ggml_compute_params * params, int64_t m, int64
     (void)Atype;
     (void)Btype;
     (void)Ctype;
+}
+
+// Same arithmetic and row/column schedule as native Q8_0; only A's loads
+// resolve the compact arena. This keeps activation quantization unchanged.
+bool llamafile_sgemm_q8arena(const struct ggml_compute_params *params,
+        int64_t m,int64_t n,int64_t k,const void*A,int64_t lda,
+        const void*B,int64_t ldb,void*C,int64_t ldc) {
+#if defined(__AVX2__)
+    tinyBLAS_Q0_AVX<block_q8_0,block_q8_0,float,true> tb{
+        k,(const block_q8_0*)A,lda,(const block_q8_0*)B,ldb,(float*)C,ldc,params->ith,params->nth};
+    tb.matmul(m,n);return true;
+#else
+    return false;
+#endif
 }

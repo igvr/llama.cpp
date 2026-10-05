@@ -848,21 +848,25 @@ static __device__ __forceinline__ float vec_dot_q5_1_q8_1(
     return vec_dot_q5_1_q8_1_impl<VDR_Q5_1_Q8_1_MMVQ>(vl, vh, u, bq5_1->dm, bq8_1->ds);
 }
 
+#include "q8arena-load.cuh"
+
 static __device__ __forceinline__ float vec_dot_q8_0_q8_1(
     const void * __restrict__ vbq, const block_q8_1 * __restrict__ bq8_1, const int & kbx, const int & iqs) {
 
     const block_q8_0 * bq8_0 = (const block_q8_0 *) vbq + kbx;
+    const bool arena = q8_arena_tagged(vbq);
+    const half d = arena ? q8_arena_half(vbq,kbx) : bq8_0->d;
 
     int v[VDR_Q8_0_Q8_1_MMVQ];
     int u[VDR_Q8_0_Q8_1_MMVQ];
 
 #pragma unroll
     for (int i = 0; i < VDR_Q8_0_Q8_1_MMVQ; ++i) {
-        v[i] = get_int_b2(bq8_0->qs, iqs + i);
+        v[i] = arena ? q8_arena_word(vbq,kbx,iqs+i) : get_int_b2(bq8_0->qs, iqs + i);
         u[i] = get_int_b4(bq8_1->qs, iqs + i);
     }
 
-    return vec_dot_q8_0_q8_1_impl<float, VDR_Q8_0_Q8_1_MMVQ>(v, u, bq8_0->d, __low2half(bq8_1->ds));
+    return vec_dot_q8_0_q8_1_impl<float, VDR_Q8_0_Q8_1_MMVQ>(v, u, d, __low2half(bq8_1->ds));
 }
 
 static __device__ __forceinline__ float vec_dot_q2_K_q8_1(

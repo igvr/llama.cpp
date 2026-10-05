@@ -1,0 +1,123 @@
+{
+  "order": [
+    "baseline",
+    "arena",
+    "baseline",
+    "arena"
+  ],
+  "runs": [
+    {
+      "mode": "baseline",
+      "prefix": "1-baseline",
+      "decode_tps": 4.365648574110712,
+      "prefill_seconds": 5.092459685,
+      "peak_host_bytes": 29474447360,
+      "steady_host_bytes": 15832567808.0,
+      "peak_sampled_gpu_mib": 13476,
+      "max_swap_bytes": 0,
+      "parity": {
+        "vectors": 192,
+        "vocab": 248320,
+        "compared_logits": 47677440,
+        "finite": true,
+        "bit_different_logits": 0,
+        "max_absolute_error": 0.0,
+        "root_mean_squared_error": 0.0,
+        "greedy_disagreements": 0,
+        "mean_kl_divergence": 0.0,
+        "max_kl_divergence": 0.0,
+        "max_probability_error": 0.0
+      }
+    },
+    {
+      "mode": "arena",
+      "prefix": "2-arena",
+      "decode_tps": 4.2977913311786065,
+      "prefill_seconds": 5.529575141,
+      "peak_host_bytes": 17855746048,
+      "steady_host_bytes": 15502319616.0,
+      "peak_sampled_gpu_mib": 13184,
+      "max_swap_bytes": 0,
+      "parity": {
+        "vectors": 192,
+        "vocab": 248320,
+        "compared_logits": 47677440,
+        "finite": true,
+        "bit_different_logits": 0,
+        "max_absolute_error": 0.0,
+        "root_mean_squared_error": 0.0,
+        "greedy_disagreements": 0,
+        "mean_kl_divergence": 0.0,
+        "max_kl_divergence": 0.0,
+        "max_probability_error": 0.0
+      }
+    },
+    {
+      "mode": "baseline",
+      "prefix": "3-baseline",
+      "decode_tps": 4.386481257418677,
+      "prefill_seconds": 5.118133761,
+      "peak_host_bytes": 29472944128,
+      "steady_host_bytes": 15832473600.0,
+      "peak_sampled_gpu_mib": 13476,
+      "max_swap_bytes": 0,
+      "parity": {
+        "vectors": 192,
+        "vocab": 248320,
+        "compared_logits": 47677440,
+        "finite": true,
+        "bit_different_logits": 0,
+        "max_absolute_error": 0.0,
+        "root_mean_squared_error": 0.0,
+        "greedy_disagreements": 0,
+        "mean_kl_divergence": 0.0,
+        "max_kl_divergence": 0.0,
+        "max_probability_error": 0.0
+      }
+    },
+    {
+      "mode": "arena",
+      "prefix": "4-arena",
+      "decode_tps": 4.303458976049243,
+      "prefill_seconds": 5.64679383,
+      "peak_host_bytes": 17853423616,
+      "steady_host_bytes": 15500255232,
+      "peak_sampled_gpu_mib": 13184,
+      "max_swap_bytes": 0,
+      "parity": {
+        "vectors": 192,
+        "vocab": 248320,
+        "compared_logits": 47677440,
+        "finite": true,
+        "bit_different_logits": 0,
+        "max_absolute_error": 0.0,
+        "root_mean_squared_error": 0.0,
+        "greedy_disagreements": 0,
+        "mean_kl_divergence": 0.0,
+        "max_kl_divergence": 0.0,
+        "max_probability_error": 0.0
+      }
+    }
+  ],
+  "summary": {
+    "baseline": {
+      "decode_tps": 4.376064915764695,
+      "prefill_seconds": 5.105296723,
+      "peak_host_bytes": 29473695744.0,
+      "steady_host_bytes": 15832520704.0,
+      "peak_sampled_gpu_mib": 13476.0,
+      "max_swap_bytes": 0.0
+    },
+    "arena": {
+      "decode_tps": 4.300625153613925,
+      "prefill_seconds": 5.588184485499999,
+      "peak_host_bytes": 17854584832.0,
+      "steady_host_bytes": 15501287424.0,
+      "peak_sampled_gpu_mib": 13184.0,
+      "max_swap_bytes": 0.0
+    }
+  },
+  "strict_bit_identical": true,
+  "decode_change_percent": -1.7239178029329283,
+  "prefill_time_change_percent": 9.458564089419696
+}

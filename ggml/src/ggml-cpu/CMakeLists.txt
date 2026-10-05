@@ -36,6 +36,7 @@ function(ggml_add_cpu_backend_variant_impl tag_name)
         ggml-cpu/quants.c
         ggml-cpu/quants.h
         ggml-cpu/traits.cpp
+        ggml-cpu/q8arena.cpp
         ggml-cpu/traits.h
         ggml-cpu/amx/amx.cpp
         ggml-cpu/amx/amx.h
